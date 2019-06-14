@@ -7,7 +7,7 @@ $room_id = $argc > 1 ? $argv[1] : 288016;
 $dy = new idDY();
 $data = $dy->GetRoomInfo($room_id);
 
-echo "Room ID -> {$data["roid"]}" . PHP_EOL;
+echo "Room ID -> {$data["rid"]}" . PHP_EOL;
 echo "Room name -> {$data["name"]}" . PHP_EOL;
 echo "Online -> {$data["online"]}" . PHP_EOL;
 echo "Room user -> {$data["user"]}" . PHP_EOL;
