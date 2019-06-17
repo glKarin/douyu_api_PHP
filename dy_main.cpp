@@ -86,14 +86,14 @@ public:
         m_data = new char[m_length];
     }
     ByteArray(ByteArray &&o)
-    : m_length(o.m_length),
-     m_data(o.m_data),
-     m_pos(o.m_pos)
+    : m_length{o.m_length},
+     m_data{o.m_data},
+     m_pos{o.m_pos}
     {
         o.m_data = nullptr;
     }
     ByteArray(const ByteArray &o)
-    : ByteArray(o.m_length)
+    : ByteArray{o.m_length}
     {
         m_pos = o.m_pos;
         memcpy(m_data, o.m_data, sizeof(char) * m_pos);
