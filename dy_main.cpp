@@ -96,7 +96,6 @@ public:
     : ByteArray(o.m_length)
     {
         m_pos = o.m_pos;
-        m_data = new char[m_length];
         memcpy(m_data, o.m_data, sizeof(char) * m_pos);
     }
     virtual ~ByteArray()
