@@ -219,14 +219,12 @@ struct idMsgResp_s
     ByteArray Pack()
     {
         int len;
-        uint16_t s;
         ByteArray r;
 
         len = data.length() + 9;
 
         r.append(4, (char *)&len);
         r.append(4, (char *)&len);
-        s = ID_MSG_CLIENT_TO_SERVER;
         r.append(2, (char *)&type);
         r.append((char)0);
         r.append((char)0);
