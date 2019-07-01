@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh_CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>BMP viewer VUE</title>
+
+    <link rel="stylesheet" href="/public/css/app.css">
+    <style>
+        #paged_bar{
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            height: 48px;
+            line-height: 48px;
+            vertical-align: middle;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
+        #gtable{
+            border: 1px solid #000000;
+            text-align: center;
+        }
+        #gheader{
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 64px;
+            line-height: 64px;
+            z-index: 999;
+            text-align: center;
+            vertical-align: middle;
+            color: #ffffff;
+            background-color: #000000;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        #main_body{
+            margin-bottom: 48px;
+            margin-top: 64px;
+        }
+
+    </style>
+</head>
+<body>
+<div class="nav" id="gheader">
+    <span>List</span>
+</div>
+<div class="container-fluid" id="main_body">
+
+    <div>
+        <form class="form-inline" id="filter_form" onsubmit="javascript:return false;" v-bind:action="url" method="post" enctype="multipart/form-data">
+
+            <div class="form-group">
+                <label for="bm">BMP</label>
+                <input type="file" class="form-control" id="bm" name="bm" placeholder="bm" @change="_SetFile($event)">
+            </div>
+
+            <button type="submit" class="btn btn-primary" @click="_Upload">Upload</button>
+
+        </form>
+    </div>
+
+    <div>
+        <ul>
+            <li>Width: {{width}}px</li>
+            <li>Height: {{height}}px</li>
+            <li>Bits: {{bits}} bits</li>
+            <li>Size: {{size}} bytes</li>
+        </ul>
+    </div>
+
+    <div>
+        <table id="_bmp_table" style="width: 100%;"></table>
+    </div>
+
+    <div id="_bmp_div">
+    </div>
+
+    <div id="_resp_div">
+        {{resp_json}}
+    </div>
+</div>
+
+<script src="/public/js/vue.min.js"></script>
+<script src="/public/js/axios.js"></script>
+<script type="text/javascript">
+    var v = new Vue({
+        el: "#main_body",
+        data: {
+            url: "nl/bm",
+            bm: "",
+            resp_json: "",
+
+            width: 0,
+            height: 0,
+            size: 0,
+            bits: 0,
+        },
+        computed: {
+        },
+
+        mounted: function(){
+        },
+
+        methods: {
+            _Upload: function(){
+                var self = this;
+                var data = new FormData();
+                data.append("bm", this.bm);
+
+                axios.post(this.url, data, {
+                    headers: {
+                        "Content-Type": "multipart/form-data"
+                    }
+                }).then(function(resp){
+                    var data = resp.data;
+                    self.resp_json = JSON.stringify(data);
+                    self._GetBmpInfo(data);
+                    self._FillBmpData(data);
+                }).catch(function(err){
+                    console.log(data);
+                });
+            },
+
+            _GetBmpInfo: function(data){
+                var header = data.header;
+                var info = data.info;
+                this.width = info._width;
+                this.height = info._height;
+                this.bits = info._bit;
+                this.size = header._size;
+            },
+
+            _FillBmpData: function(data){
+                var t = document.getElementById("_bmp_div");
+                var d;
+                var info = data.info;
+                var table = data.color_table;
+                var pixel = data.pixels;
+                var w = info._width;
+                var h = info._height;
+                var bits = info._bit;
+                var td_w = t.offsetWidth / w;
+                var td_h = td_w;//t.offsetWidth / h;
+
+                t.innerHTML = "";
+                if(bits <= 8)
+                {
+                    for(var i = 0; i < h; i++)
+                    {
+                        for(var m = 0; m < w; m++)
+                        {
+                            var index = pixel[i][m];
+                            var color = table[index];
+                            var html_color = this._MakeColor(color["_R"], color["_G"], color["_B"]);
+                            d = document.createElement("div");
+                            d.style.width = "" + td_w + "px";
+                            d.style.height = "" + td_w + "px";
+                            d.style.backgroundColor = html_color;
+                            d.style.color = html_color;
+                            if(m === w - 1)
+                                d.style.clear = "right";
+                            d.style.float = "left";
+                            t.append(d);
+                        }
+                    }
+                }
+                else
+                {
+                    for(var i = 0; i < h; i++)
+                    {
+                        for(var m = 0; m < w; m++)
+                        {
+                            var color = pixel[i][m];
+                            var html_color = this._MakeColor(color[0], color[1], color[2], color[3]);
+                            d = document.createElement("div");
+                            d.style.width = "" + td_w + "px";
+                            d.style.height = "" + td_w + "px";
+                            d.style.backgroundColor = html_color;
+                            d.style.color = html_color;
+                            if(m === w - 1)
+                                d.style.clear = "right";
+                            d.style.float = "left";
+                            t.append(d);
+                        }
+                    }
+                }
+            },
+
+            _FillBmpDataTable: function(data){
+                var t = document.getElementById("_bmp_table");
+                var tr;
+                var td;
+                var info = data.info;
+                var table = data.color_table;
+                var pixel = data.pixels;
+                var w = info._width;
+                var h = info._height;
+                var bits = info._bit;
+                var td_w = t.offsetWidth / w;
+                var td_h = td_w;//t.offsetWidth / h;
+                t.style.height = "" + td_h * h + "px";
+
+                t.innerHTML = "";
+                if(bits <= 8)
+                {
+                    for(var i = 0; i < h; i++)
+                    {
+                        tr = document.createElement("tr");
+                        tr.style.height = "" + td_h + "px";
+                        tr.style.width = "100%";
+                        for(var m = 0; m < w; m++)
+                        {
+                            var index = pixel[i][m];
+                            var color = table[index];
+                            var html_color = this._MakeColor(color["_R"], color["_G"], color["_B"]);
+                            td = document.createElement("td");
+                            td.style.width = "" + td_w + "px";
+                            td.innerText = "*";
+                            td.style.backgroundColor = html_color;
+                            td.style.color = html_color;
+                            tr.append(td);
+                        }
+                        t.append(tr);
+                    }
+                }
+                else
+                {
+                    for(var i = 0; i < h; i++)
+                    {
+                        tr = document.createElement("tr");
+                        tr.style.height = "" + td_h + "px";
+                        tr.style.width = "100%";
+                        for(var m = 0; m < w; m++)
+                        {
+                            var color = pixel[i][m];
+                            var html_color = this._MakeColor(color[0], color[1], color[2], color[3]);
+                            td = document.createElement("td");
+                            td.style.width = "" + td_w + "px";
+                            td.innerText = "*";
+                            td.style.backgroundColor = html_color;
+                            td.style.color = html_color;
+                            tr.append(td);
+                        }
+                        t.append(tr);
+                    }
+                }
+            },
+
+            _MakeColor: function(r, g, b, a){
+                var res = "#";
+                var s = r.toString(16);
+                if(s.length < 2) s = "0" + s;
+                res += s;
+                s = g.toString(16);
+                if(s.length < 2) s = "0" + s;
+                res += s;
+                s = b.toString(16);
+                if(s.length < 2) s = "0" + s;
+                res += s;
+                if(a !== undefined)
+                {
+                    s = a.toString(16);
+                    if(s.length < 2) s = "0" + s;
+                    res += s;
+                }
+                return res;
+            },
+            _SetFile: function(event){
+                this.bm = event.target.files[0];
+            },
+        }
+    });
+</script>
+</body>
+</html>
